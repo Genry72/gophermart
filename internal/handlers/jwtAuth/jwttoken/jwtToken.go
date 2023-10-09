@@ -1,4 +1,4 @@
-package jwtToken
+package jwttoken
 
 import (
 	"fmt"

@@ -3,7 +3,7 @@ package handlers
 import (
 	"context"
 	"github.com/Genry72/gophermart/internal/handlers/jwtAuth"
-	"github.com/Genry72/gophermart/internal/handlers/jwtAuth/jwtToken"
+	"github.com/Genry72/gophermart/internal/handlers/jwtAuth/jwttoken"
 	"github.com/Genry72/gophermart/internal/handlers/midlware/gzip"
 	midlwareLog "github.com/Genry72/gophermart/internal/handlers/midlware/log"
 	"github.com/Genry72/gophermart/internal/usecases"
@@ -41,7 +41,7 @@ func NewHandler(useCases *usecases.Usecase,
 		log:       log,
 		ginEngine: g,
 		server:    srv,
-		authToken: jwtToken.NewJwtToken(tokenKey, jwtLifeTime),
+		authToken: jwttoken.NewJwtToken(tokenKey, jwtLifeTime),
 	}
 
 	h.initRoutes()

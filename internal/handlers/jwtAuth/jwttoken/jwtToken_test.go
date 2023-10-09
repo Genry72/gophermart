@@ -1,4 +1,4 @@
-package jwtToken
+package jwttoken
 
 import (
 	"github.com/Genry72/gophermart/internal/models"
