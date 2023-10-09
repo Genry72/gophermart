@@ -38,7 +38,6 @@ returning user_id,
     updated_at,
     deleted_at;
 `
-	result := &models.User{}
 
 	rows, err := u.conn.NamedQueryContext(ctx, query, user)
 	if err != nil {
@@ -52,12 +51,13 @@ returning user_id,
 		}
 	}()
 
+	var result *models.User
+
 	for rows.Next() {
+		result = &models.User{}
 		if err := rows.StructScan(result); err != nil {
 			return nil, fmt.Errorf("rows.StructScan: %w", err)
 		}
-
-		break
 	}
 
 	if err := rows.Err(); err != nil {

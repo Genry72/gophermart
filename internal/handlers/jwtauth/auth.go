@@ -1,4 +1,4 @@
-package jwtAuth
+package jwtauth
 
 import "github.com/Genry72/gophermart/internal/models"
 

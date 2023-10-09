@@ -2,8 +2,8 @@ package handlers
 
 import (
 	"context"
-	"github.com/Genry72/gophermart/internal/handlers/jwtAuth"
-	"github.com/Genry72/gophermart/internal/handlers/jwtAuth/jwttoken"
+	"github.com/Genry72/gophermart/internal/handlers/jwtauth"
+	"github.com/Genry72/gophermart/internal/handlers/jwtauth/jwttoken"
 	"github.com/Genry72/gophermart/internal/handlers/midlware/gzip"
 	midlwareLog "github.com/Genry72/gophermart/internal/handlers/midlware/log"
 	"github.com/Genry72/gophermart/internal/usecases"
@@ -18,7 +18,7 @@ type Handler struct {
 	log       *zap.Logger
 	ginEngine *gin.Engine
 	server    *http.Server
-	authToken jwtAuth.Auther
+	authToken jwtauth.Auther
 }
 
 func NewHandler(useCases *usecases.Usecase,
