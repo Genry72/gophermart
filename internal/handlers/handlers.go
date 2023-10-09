@@ -49,12 +49,12 @@ func NewHandler(useCases *usecases.Usecase,
 	return h
 }
 
-func (s *Handler) Start() error {
-	return s.server.ListenAndServe()
+func (h *Handler) Start() error {
+	return h.server.ListenAndServe()
 }
 
-func (s *Handler) Stop(ctx context.Context) error {
-	return s.server.Shutdown(ctx)
+func (h *Handler) Stop(ctx context.Context) error {
+	return h.server.Shutdown(ctx)
 }
 
 func (h *Handler) initRoutes() {
