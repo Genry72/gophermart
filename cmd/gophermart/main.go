@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"github.com/Genry72/gophermart/internal/handlers"
 	"github.com/Genry72/gophermart/internal/logger"
 	"github.com/Genry72/gophermart/internal/repositories/postgre"
@@ -57,7 +58,7 @@ func main() {
 	server := handlers.NewHandler(usecase, flagRunAddr, flagAuthKey, time.Duration(flagTokenLifeTime)*time.Hour, zapLogger)
 
 	go func() {
-		if err := server.Start(); err != nil && err != http.ErrServerClosed {
+		if err := server.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
 			zapLogger.Fatal("run server", zap.Error(err))
 		}
 	}()
