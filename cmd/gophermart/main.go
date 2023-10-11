@@ -20,6 +20,7 @@ var (
 	flagPgDsn         string
 	flagAuthKey       string
 	flagTokenLifeTime int64
+	flagAccural       string
 )
 
 const (
@@ -30,6 +31,8 @@ const (
 	envAuthKey = "AUTH_KEY"
 	// Время жизни токена в часах
 	envTokenLifeTime = "TOKEN_LIFE_TIME"
+	// Адрес системы расчёта начислений: переменная окружения ОС
+	envAccuralSystemAddress = "ACCRUAL_SYSTEM_ADDRESS"
 )
 
 func main() {
