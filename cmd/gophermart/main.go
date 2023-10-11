@@ -24,9 +24,9 @@ var (
 )
 
 const (
-	envRunAddr = "ADDRESS"
+	envRunAddr = "RUN_ADDRESS"
 	// Строка с адресом подключения к БД
-	envPgDSN = "DATABASE_DSN"
+	envPgDSN = "DATABASE_URI"
 	// Ключ для генерации токена
 	envAuthKey = "AUTH_KEY"
 	// Время жизни токена в часах
