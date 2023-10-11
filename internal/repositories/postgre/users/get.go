@@ -17,7 +17,7 @@ select user_id,
        phone,
        created_at,
        updated_at
-from users where username = $1 and deleted_at is null
+from users where username = $1
 `
 	row := u.conn.QueryRowxContext(ctx, query, username)
 

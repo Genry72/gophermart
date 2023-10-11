@@ -4,6 +4,7 @@ import (
 	"context"
 	"github.com/Genry72/gophermart/internal/handlers/jwtauth"
 	"github.com/Genry72/gophermart/internal/handlers/jwtauth/jwttoken"
+	"github.com/Genry72/gophermart/internal/handlers/midlware/auth"
 	"github.com/Genry72/gophermart/internal/handlers/midlware/gzip"
 	midlwareLog "github.com/Genry72/gophermart/internal/handlers/midlware/log"
 	"github.com/Genry72/gophermart/internal/usecases"
@@ -64,6 +65,8 @@ func (h *Handler) initRoutes() {
 		{
 			user.POST("/register", h.addUser)
 			user.POST("/login", h.authUser)
+			user.POST("/orders", auth.Auth(h.authToken), h.uploadOrder)
+			user.GET("/orders", auth.Auth(h.authToken), h.getOrders)
 		}
 	}
 }

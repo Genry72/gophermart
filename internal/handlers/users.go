@@ -35,7 +35,7 @@ func (h *Handler) addUser(c *gin.Context) {
 		c.String(status, err.Error())
 	}
 
-	c.Header("Authorization", token)
+	c.Header("Authorization", "Bearer "+token)
 
 	c.JSON(http.StatusOK, newUser)
 
@@ -69,7 +69,7 @@ func (h *Handler) authUser(c *gin.Context) {
 		c.String(status, err.Error())
 	}
 
-	c.Header("Authorization", token)
+	c.Header("Authorization", "Bearer "+token)
 
 	c.String(http.StatusOK, "пользователь успешно аутентифицирован")
 

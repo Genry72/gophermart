@@ -1,13 +1,13 @@
 package users
 
 import (
-	context2 "context"
+	"context"
 	"fmt"
 	"github.com/Genry72/gophermart/internal/models"
 	"go.uber.org/zap"
 )
 
-func (u *UserStorage) AddUser(ctx context2.Context, user *models.User) (*models.User, error) {
+func (u *UserStorage) AddUser(ctx context.Context, user *models.User) (*models.User, error) {
 	query := `
 INSERT INTO users (username,
                    password_hash,
@@ -16,8 +16,7 @@ INSERT INTO users (username,
                    last_name,
                    phone,
                    created_at,
-                   updated_at,
-                   deleted_at)
+                   updated_at)
 VALUES (:username,
         :password_hash,
         :email,
@@ -25,8 +24,7 @@ VALUES (:username,
         :last_name,
         :phone,
         DEFAULT,
-        DEFAULT,
-        null)
+        DEFAULT)
 returning user_id,
     username,
     password_hash,
@@ -35,8 +33,7 @@ returning user_id,
     last_name,
     phone,
     created_at,
-    updated_at,
-    deleted_at;
+    updated_at;
 `
 
 	rows, err := u.conn.NamedQueryContext(ctx, query, user)

@@ -14,6 +14,10 @@ func checkError(err error) int {
 		return http.StatusConflict
 	case errors.Is(err, myerrors.ErrUnauthorized):
 		return http.StatusUnauthorized
+	case errors.Is(err, myerrors.ErrOrderAlreadyUploadByUser):
+		return http.StatusOK
+	case errors.Is(err, myerrors.ErrOrderUploadByAnotherUser):
+		return http.StatusConflict
 	default:
 		return http.StatusInternalServerError
 	}
