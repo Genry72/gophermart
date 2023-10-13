@@ -6,13 +6,28 @@ import (
 	_ "github.com/lib/pq"
 )
 
+// Userser управление пользователями
 type Userser interface {
 	AddUser(ctx context.Context, user *models.User) (*models.User, error)
 	GetUserInfo(ctx context.Context, username string) (*models.User, error)
 }
 
+// Orderer работа с заказами
 type Orderer interface {
+	// GetOrderByID получение заказа по ID
 	GetOrderByID(ctx context.Context, orderID int64) (*models.Order, error)
+	// AddOrder запись заказа в базу
 	AddOrder(ctx context.Context, orderID, userID int64) (*models.Order, error)
+	// GetOrdersByUserID Получение всех заказов пользователя
 	GetOrdersByUserID(ctx context.Context, userID int64) ([]*models.Order, error)
+}
+
+// Accrualer получение информации по заказам
+type Accrualer interface {
+	// GetUnprocessedOrders Получение id заказов по которым нужны проверки статусов
+	GetUnprocessedOrders(ctx context.Context) ([]int64, error)
+	// GetAccrualInfo получение информации по заказам из accrual
+	GetAccrualInfo(ctx context.Context, orderIDs []int64) []*models.ResponseAccrual
+	// WriteStatus Запись информации по заказам в базу
+	WriteStatus(ctx context.Context, src []*models.ResponseAccrual) error
 }

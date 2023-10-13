@@ -7,6 +7,7 @@ import (
 	"github.com/Genry72/gophermart/internal/logger"
 	"github.com/Genry72/gophermart/internal/repositories/postgre"
 	"github.com/Genry72/gophermart/internal/usecases"
+	"github.com/Genry72/gophermart/internal/usecases/accrual"
 	"go.uber.org/zap"
 	"net/http"
 	"os"
@@ -66,11 +67,23 @@ func main() {
 		}
 	}()
 
+	mainCtx, cancelMain := context.WithCancel(context.Background())
+	defer cancelMain()
+
+	accrualUsecase := accrual.NewAccrual(repo, flagAccural, 5, zapLogger)
+
+	// Запуск обновления статусов заказов
+	go func() {
+		accrualUsecase.Start(mainCtx, 5*time.Second)
+	}()
+
 	quit := make(chan os.Signal, 1)
 
 	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
 
 	<-quit
+
+	cancelMain()
 
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -78,6 +91,8 @@ func main() {
 	if err := server.Stop(ctx); err != nil {
 		zapLogger.Error("Server Shutdown:", zap.Error(err))
 	}
+
+	accrualUsecase.WaitDone(ctx)
 
 	zapLogger.Info("Server exiting")
 }

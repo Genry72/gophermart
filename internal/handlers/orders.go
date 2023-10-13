@@ -63,5 +63,10 @@ func (h *Handler) getOrders(c *gin.Context) {
 		return
 	}
 
+	if len(orders) == 0 {
+		c.JSON(http.StatusNoContent, myerrors.ErrNoOrders.Error())
+		return
+	}
+
 	c.JSON(http.StatusOK, orders)
 }
