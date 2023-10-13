@@ -30,7 +30,7 @@ comment on column users.updated_at is 'Дата обновления';
  */
 create table orders
 (
-    order_id   bigserial               not null
+    order_id   varchar               not null
         constraint orders_pk
             primary key,
     user_id    bigserial               not null
