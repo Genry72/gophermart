@@ -62,9 +62,7 @@ create table withdraw
     user_id  bigserial               not null
         constraint withdraw_users_user_id_fk
             references public.users,
-    order_id varchar                 not null
-        constraint withdraw_orders_order_id_fk
-            references public.orders,
+    order_id varchar                 not null,
     points   double precision        not null,
     date     timestamp default now() not null
 );

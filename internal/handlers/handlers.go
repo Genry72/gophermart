@@ -33,8 +33,9 @@ func NewHandler(useCases *usecases.Usecase,
 	g.Use(gzip.Gzip(log))
 
 	srv := &http.Server{
-		Addr:    hostPort,
-		Handler: g,
+		Addr:              hostPort,
+		Handler:           g,
+		ReadHeaderTimeout: time.Second,
 	}
 
 	h := &Handler{
@@ -68,6 +69,12 @@ func (h *Handler) initRoutes() {
 			user.POST("/orders", auth.Auth(h.authToken), h.uploadOrder)
 			user.GET("/orders", auth.Auth(h.authToken), h.getOrders)
 			user.GET("/balance", auth.Auth(h.authToken), h.getUserBalance)
+			user.GET("/withdrawals", auth.Auth(h.authToken), h.withdrawals)
+		}
+
+		balance := user.Group("/balance")
+		{
+			balance.POST("/withdraw", auth.Auth(h.authToken), h.withdraw)
 		}
 	}
 }

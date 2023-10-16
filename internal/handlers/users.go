@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"github.com/Genry72/gophermart/internal/models"
-	"github.com/Genry72/gophermart/internal/models/myerrors"
 	"github.com/gin-gonic/gin"
 	"go.uber.org/zap"
 	"net/http"
@@ -74,22 +73,4 @@ func (h *Handler) authUser(c *gin.Context) {
 
 	c.String(http.StatusOK, "пользователь успешно аутентифицирован")
 
-}
-
-func (h *Handler) getUserBalance(c *gin.Context) {
-	userID, ok := c.Request.Context().Value(models.CtxKeyUserID{}).(int64)
-	if !ok {
-		c.JSON(http.StatusInternalServerError, myerrors.ErrBadCtxUserID.Error())
-		return
-	}
-
-	ctx := c.Request.Context()
-
-	balance, err := h.useCases.Users.GetUserBalance(ctx, userID)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, err.Error())
-		return
-	}
-
-	c.JSON(http.StatusOK, balance)
 }
