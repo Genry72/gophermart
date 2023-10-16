@@ -67,6 +67,7 @@ func (h *Handler) initRoutes() {
 			user.POST("/login", h.authUser)
 			user.POST("/orders", auth.Auth(h.authToken), h.uploadOrder)
 			user.GET("/orders", auth.Auth(h.authToken), h.getOrders)
+			user.GET("/balance", auth.Auth(h.authToken), h.getUserBalance)
 		}
 	}
 }

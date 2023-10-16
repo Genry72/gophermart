@@ -8,8 +8,12 @@ import (
 
 // Userser управление пользователями
 type Userser interface {
+	// AddUser Добавление пользователя
 	AddUser(ctx context.Context, user *models.User) (*models.User, error)
+	// GetUserInfo Получение информации по пользователю
 	GetUserInfo(ctx context.Context, username string) (*models.User, error)
+	// GetUserBalance Получение баланса пользователя
+	GetUserBalance(ctx context.Context, userID int64) (*models.Balance, error)
 }
 
 // Orderer работа с заказами

@@ -17,7 +17,7 @@ func Auth(a jwtauth.Auther) gin.HandlerFunc {
 
 		tokenSplited := strings.Split(authHeader, " ")
 
-		if len(tokenSplited) != 2 || strings.ToLower(tokenSplited[0]) != "bearer" {
+		if len(tokenSplited) != 2 || !strings.EqualFold(tokenSplited[0], "bearer") {
 			c.AbortWithStatusJSON(http.StatusUnauthorized, myerrors.ErrBadAuthHeader.Error())
 			return
 		}

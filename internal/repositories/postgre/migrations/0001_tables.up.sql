@@ -49,3 +49,29 @@ comment on column orders.status is 'Статус расчёта начислен
 comment on column orders.accrual is 'Рассчитанные баллы к начислению';
 comment on column orders.created_at is 'Дата создания';
 comment on column orders.updated_at is 'Дата обновления';
+
+/*
+   withdraw
+ */
+
+create table withdraw
+(
+    id       bigserial               not null
+        constraint withdraw_pk
+            primary key,
+    user_id  bigserial               not null
+        constraint withdraw_users_user_id_fk
+            references public.users,
+    order_id varchar                 not null
+        constraint withdraw_orders_order_id_fk
+            references public.orders,
+    points   double precision        not null,
+    date     timestamp default now() not null
+);
+
+comment on table withdraw is 'Списание средств';
+comment on column withdraw.id is 'Уникальный идентификатор записи';
+comment on column withdraw.user_id is 'ID пользователя';
+comment on column withdraw.order_id is 'ID заказа, в счет которого произошло списание';
+comment on column withdraw.points is 'Колличество списанных баллов';
+comment on column withdraw.date is 'Дата списания';
