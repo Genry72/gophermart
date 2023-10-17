@@ -55,7 +55,7 @@ func main() {
 
 	defer repo.Stop()
 
-	usecase := usecases.NewUsecase(repo, zapLogger)
+	usecase := usecases.NewUsecase(repo.Conn, zapLogger)
 
 	zapLogger.Info("Starting server", zap.String("port", flagRunAddr))
 

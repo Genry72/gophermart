@@ -7,10 +7,12 @@ require (
 	github.com/go-resty/resty/v2 v2.9.1
 	github.com/golang-jwt/jwt/v4 v4.4.2
 	github.com/golang-migrate/migrate/v4 v4.16.2
+	github.com/golang/mock v1.6.0
 	github.com/jmoiron/sqlx v1.3.5
 	github.com/lib/pq v1.10.9
 	github.com/stretchr/testify v1.8.4
 	github.com/theplant/luhn v0.0.0-20170224032821-81a1a381387a
+	github.com/zhashkevych/go-sqlxmock v1.5.1
 	go.uber.org/zap v1.26.0
 )
 

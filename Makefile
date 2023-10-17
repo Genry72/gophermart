@@ -24,3 +24,12 @@ accrual:
 	./cmd/accrual/accrual_linux_amd64 \
 	-d "postgres://postgres:pass@localhost:5433/gophermart?sslmode=disable" \
 	-a "localhost:8083"
+
+.PHONY: gen
+gen:
+	mockgen -source=internal/repositories/repositories.go \
+    -destination=internal/repositories/mocks/mock_repository.go
+
+.PHONY: mytest
+mytest:
+	go test -v -count=1 ./...

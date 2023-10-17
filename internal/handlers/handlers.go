@@ -28,9 +28,7 @@ func NewHandler(useCases *usecases.Usecase,
 	g := gin.New()
 
 	// Подключаем логирование и работу со сжатием запросов
-	g.Use(midlwareLog.ResponseLogger(log))
-	g.Use(midlwareLog.RequestLogger(log))
-	g.Use(gzip.Gzip(log))
+	use(g, log)
 
 	srv := &http.Server{
 		Addr:              hostPort,
@@ -77,4 +75,10 @@ func (h *Handler) initRoutes() {
 			balance.POST("/withdraw", auth.Auth(h.authToken), h.withdraw)
 		}
 	}
+}
+
+func use(g *gin.Engine, log *zap.Logger) {
+	g.Use(midlwareLog.ResponseLogger(log))
+	g.Use(midlwareLog.RequestLogger(log))
+	g.Use(gzip.Gzip(log))
 }

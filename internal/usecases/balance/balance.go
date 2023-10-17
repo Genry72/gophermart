@@ -4,8 +4,8 @@ import (
 	"context"
 	"github.com/Genry72/gophermart/internal/models"
 	"github.com/Genry72/gophermart/internal/repositories"
-	"github.com/Genry72/gophermart/internal/repositories/postgre"
 	"github.com/Genry72/gophermart/internal/repositories/postgre/balances"
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/zap"
 )
 
@@ -14,10 +14,10 @@ type Balances struct {
 	repo repositories.Balancer
 }
 
-func NewBalances(repo *postgre.PGStorage, log *zap.Logger) *Balances {
+func NewBalances(conn *sqlx.DB, log *zap.Logger) *Balances {
 	return &Balances{
 		log:  log,
-		repo: balances.NewBalanceStorage(repo.Conn, log),
+		repo: balances.NewBalanceStorage(conn, log),
 	}
 }
 
