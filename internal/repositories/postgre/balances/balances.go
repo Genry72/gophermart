@@ -27,8 +27,7 @@ COALESCE(sum(w.points), 0) as withdrawn
 from orders o
           left join withdraw w on o.user_id = w.user_id
 where o.user_id = $1
-group by o.user_id, w.date
-order by w.date
+group by o.user_id
 `
 	result := &models.Balance{}
 
