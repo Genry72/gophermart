@@ -26,7 +26,7 @@ func NewAccrual(repo *postgre.PGStorage, accuralHost string, limitConcurentReque
 func (o *Accrual) Start(ctx context.Context, interval time.Duration) {
 	ticker := time.NewTicker(interval)
 
-	donectx, cancel := context.WithCancel(ctx)
+	donectx, cancel := context.WithCancel(context.Background())
 
 	o.doneCtx = donectx
 

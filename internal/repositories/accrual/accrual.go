@@ -64,19 +64,18 @@ func (o *AccrualsStorage) GetUnprocessedOrders(ctx context.Context) ([]int64, er
 
 // GetAccrualInfo получение информации по заказам из accrual
 func (o *AccrualsStorage) GetAccrualInfo(ctx context.Context, orderIDs []int64) []*models.ResponseAccrual {
-	result := make([]*models.ResponseAccrual, 0, len(orderIDs))
-	mx := sync.Mutex{}
+	result := make([]*models.ResponseAccrual, len(orderIDs))
+
 	wg := sync.WaitGroup{}
 
-	for _, orderID := range orderIDs {
+	for i := range orderIDs {
 		wg.Add(1)
 
-		go func(orderID int64) {
+		go func(i int) {
 			defer wg.Done()
 
 			select {
 			case <-ctx.Done():
-				//close(o.limitConcurentRequest)
 				return
 
 			case o.limitConcurentRequest <- struct{}{}:
@@ -86,7 +85,7 @@ func (o *AccrualsStorage) GetAccrualInfo(ctx context.Context, orderIDs []int64) 
 
 				accuralStatus := &models.ResponseAccrual{}
 
-				resp, err := o.httpClient.R().SetContext(ctx).SetResult(accuralStatus).Get(fmt.Sprint(orderID))
+				resp, err := o.httpClient.R().SetContext(ctx).SetResult(accuralStatus).Get(fmt.Sprint(orderIDs[i]))
 				if err != nil {
 					o.log.Error("o.httpClient.R().SetContext(ctx).SetResult(result).Get", zap.Error(err))
 					return
@@ -97,15 +96,12 @@ func (o *AccrualsStorage) GetAccrualInfo(ctx context.Context, orderIDs []int64) 
 					return
 				}
 
-				mx.Lock()
-				result = append(result, accuralStatus)
-				mx.Unlock()
+				result[i] = accuralStatus
 			}
-		}(orderID)
+		}(i)
 	}
 
 	wg.Wait()
-
 	return result
 }
 
@@ -130,6 +126,9 @@ where order_id = $1`
 	}()
 
 	for i := range src {
+		if src[i] == nil {
+			continue
+		}
 		if _, err := tx.ExecContext(ctx, query, src[i].OrderID, src[i].Status, src[i].Accrual); err != nil {
 			return fmt.Errorf("tx.ExecContext: %w", err)
 		}
