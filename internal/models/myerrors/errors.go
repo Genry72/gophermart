@@ -12,4 +12,5 @@ var (
 	ErrOrderAlreadyUploadByUser = errors.New("номер заказа уже был загружен этим пользователем")
 	ErrNoOrders                 = errors.New("нет данных для ответа")
 	ErrStatusCodeNotCorrect     = errors.New("некорректный код ответа")
+	ErrNoMoney                  = errors.New("на счету недостаточно средств")
 )

@@ -18,6 +18,8 @@ func checkError(err error) int {
 		return http.StatusOK
 	case errors.Is(err, myerrors.ErrOrderUploadByAnotherUser):
 		return http.StatusConflict
+	case errors.Is(err, myerrors.ErrNoMoney):
+		return http.StatusUnprocessableEntity
 	default:
 		return http.StatusInternalServerError
 	}

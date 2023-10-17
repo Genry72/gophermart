@@ -61,7 +61,9 @@ func (h *Handler) withdraw(c *gin.Context) {
 
 	if err := h.useCases.Balances.Withdraw(ctx, &draw); err != nil {
 		h.log.Error(" h.useCases.Users.Withdraw", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, err.Error())
+		status := checkError(err)
+		c.JSON(status, err.Error())
+
 		return
 	}
 
