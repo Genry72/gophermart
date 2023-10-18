@@ -10,7 +10,6 @@ import (
 
 	models "github.com/Genry72/gophermart/internal/models"
 	gomock "github.com/golang/mock/gomock"
-	sqlx "github.com/jmoiron/sqlx"
 )
 
 // MockUserser is a mock of Userser interface.
@@ -265,41 +264,4 @@ func (m *MockAccrualer) WriteStatus(ctx context.Context, src []*models.ResponseA
 func (mr *MockAccrualerMockRecorder) WriteStatus(ctx, src interface{}) *gomock.Call {
 	mr.mock.ctrl.T.Helper()
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "WriteStatus", reflect.TypeOf((*MockAccrualer)(nil).WriteStatus), ctx, src)
-}
-
-// MockPgStorager is a mock of PgStorager interface.
-type MockPgStorager struct {
-	ctrl     *gomock.Controller
-	recorder *MockPgStoragerMockRecorder
-}
-
-// MockPgStoragerMockRecorder is the mock recorder for MockPgStorager.
-type MockPgStoragerMockRecorder struct {
-	mock *MockPgStorager
-}
-
-// NewMockPgStorager creates a new mock instance.
-func NewMockPgStorager(ctrl *gomock.Controller) *MockPgStorager {
-	mock := &MockPgStorager{ctrl: ctrl}
-	mock.recorder = &MockPgStoragerMockRecorder{mock}
-	return mock
-}
-
-// EXPECT returns an object that allows the caller to indicate expected use.
-func (m *MockPgStorager) EXPECT() *MockPgStoragerMockRecorder {
-	return m.recorder
-}
-
-// GetConn mocks base method.
-func (m *MockPgStorager) GetConn() *sqlx.DB {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "GetConn")
-	ret0, _ := ret[0].(*sqlx.DB)
-	return ret0
-}
-
-// GetConn indicates an expected call of GetConn.
-func (mr *MockPgStoragerMockRecorder) GetConn() *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "GetConn", reflect.TypeOf((*MockPgStorager)(nil).GetConn))
 }

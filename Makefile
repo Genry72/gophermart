@@ -28,8 +28,18 @@ accrual:
 .PHONY: gen
 gen:
 	mockgen -source=internal/repositories/repositories.go \
-    -destination=internal/repositories/mocks/mock_repository.go
+    -destination=internal/repositories/mocks/mock_repository.go && \
+    mockgen -source=internal/usecases/usecase.go \
+    -destination=internal/usecases/mocks/mock_usecase.go && \
+    mockgen -source=internal/handlers/jwtauth/auth.go \
+    -destination=internal/handlers/jwtauth/mocks/mock_auth.go
 
 .PHONY: mytest
 mytest:
 	go test -v -count=1 ./...
+
+.PHONY: cover
+cover:
+	go test -short -count=1 -race -coverprofile=coverage.out ./...
+	go tool cover -html=coverage.out
+	rm coverage.out

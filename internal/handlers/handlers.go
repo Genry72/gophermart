@@ -28,7 +28,7 @@ func NewHandler(useCases *usecases.Usecase,
 	g := gin.New()
 
 	// Подключаем логирование и работу со сжатием запросов
-	use(g, log)
+	useMidlWare(g, log)
 
 	srv := &http.Server{
 		Addr:              hostPort,
@@ -77,7 +77,7 @@ func (h *Handler) initRoutes() {
 	}
 }
 
-func use(g *gin.Engine, log *zap.Logger) {
+func useMidlWare(g *gin.Engine, log *zap.Logger) {
 	g.Use(midlwareLog.ResponseLogger(log))
 	g.Use(midlwareLog.RequestLogger(log))
 	g.Use(gzip.Gzip(log))

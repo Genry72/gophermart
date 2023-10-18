@@ -7,6 +7,8 @@ import (
 	"net/http"
 )
 
+const successAuthUser = "пользователь успешно аутентифицирован"
+
 func (h *Handler) addUser(c *gin.Context) {
 	ctx := c.Request.Context()
 
@@ -33,6 +35,7 @@ func (h *Handler) addUser(c *gin.Context) {
 		h.log.Error("h.authToken.GetToken", zap.Error(err))
 		status := checkError(err)
 		c.String(status, err.Error())
+		return
 	}
 
 	c.Header("Authorization", "Bearer "+token)
@@ -67,10 +70,11 @@ func (h *Handler) authUser(c *gin.Context) {
 		h.log.Error("h.authToken.GetToken", zap.Error(err))
 		status := checkError(err)
 		c.String(status, err.Error())
+		return
 	}
 
 	c.Header("Authorization", "Bearer "+token)
 
-	c.String(http.StatusOK, "пользователь успешно аутентифицирован")
+	c.String(http.StatusOK, successAuthUser)
 
 }

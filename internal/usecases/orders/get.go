@@ -6,6 +6,5 @@ import (
 )
 
 func (o *Orders) GetOrdersByUserID(ctx context.Context, userID int64) ([]*models.Order, error) {
-
 	return o.repo.GetOrdersByUserID(ctx, userID)
 }
