@@ -12,6 +12,7 @@ import (
 	"github.com/Genry72/gophermart/internal/models/myerrors"
 	"github.com/Genry72/gophermart/internal/usecases"
 	mockUc "github.com/Genry72/gophermart/internal/usecases/mocks"
+	"github.com/Genry72/gophermart/pkg/slices"
 	"github.com/gin-gonic/gin"
 	"github.com/golang/mock/gomock"
 	"github.com/stretchr/testify/assert"
@@ -777,4 +778,33 @@ func TestHandlers(t *testing.T) {
 		})
 
 	}
+}
+
+func TestNewHandlerAndAuth(t *testing.T) {
+	useCases := new(usecases.Usecase)
+	hostPort := "localhost:8080"
+	tokenKey := "token"
+	jwtLifeTime := time.Hour
+	zapLogger := logger.NewZapLogger("info")
+
+	handler := NewHandler(useCases, hostPort, tokenKey, jwtLifeTime, zapLogger)
+
+	// роуты по которым нет роверки токена
+	noAuthRoute := []string{"/api/user/register", "/api/user/login"}
+
+	for _, v := range handler.ginEngine.Routes() {
+		req, err := http.NewRequestWithContext(context.Background(), v.Method, v.Path, nil)
+		assert.NoError(t, err)
+
+		resp := httptest.NewRecorder()
+
+		handler.ginEngine.ServeHTTP(resp, req)
+
+		if !slices.Inslice(noAuthRoute, v.Path) {
+			assert.Equal(t, http.StatusUnauthorized, resp.Code)
+		} else {
+			assert.Equal(t, http.StatusBadRequest, resp.Code)
+		}
+	}
+
 }
