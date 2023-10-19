@@ -3,6 +3,7 @@ package handlers
 import (
 	"bytes"
 	"context"
+	"database/sql"
 	"encoding/json"
 	"fmt"
 	mockAuth "github.com/Genry72/gophermart/internal/handlers/jwtauth/mocks"
@@ -142,6 +143,23 @@ func TestHandlers(t *testing.T) {
 
 	password := "pass"
 
+	expectedUser := &models.User{
+		Username:  login,
+		UserID:    1,
+		CreatedAt: t1,
+	}
+
+	expectedToken := "token"
+
+	luhnorderID := "79927398713"
+
+	expectedOrder := &models.Order{
+		OrderID: luhnorderID,
+		//UserID:  1, // userID не возвращаем в ответе
+	}
+
+	anyErr := fmt.Errorf("anyErr")
+
 	zapLogger := logger.NewZapLogger("info")
 
 	// Создаем роутер и устанавливаем мидлварю
@@ -156,20 +174,13 @@ func TestHandlers(t *testing.T) {
 		authToken: mockAuthToken,
 	}
 
-	expectedUser := &models.User{
-		Username:  login,
-		UserID:    1,
-		CreatedAt: t1,
-	}
-
-	expectedToken := "token"
-
 	handlers.initRoutes()
 
 	type args struct {
 		url         string // url запроса
 		method      string
-		requestBody any // Отправляемое боди (структура, либо строка)
+		requestBody any               // Отправляемое боди (структура, либо строка)
+		headers     map[string]string // Добавляемые заголовки в запрос
 		mockFunc    func()
 	}
 
@@ -184,6 +195,7 @@ func TestHandlers(t *testing.T) {
 		// Функция для парсинга тела ответа
 		parseResponseBody func(b []byte) (interface{}, error)
 	}{
+		// users
 		{
 			name: "Register positive",
 			args: args{
@@ -340,6 +352,171 @@ func TestHandlers(t *testing.T) {
 
 			expectedErr: fmt.Errorf("myErr"),
 		},
+
+		// orders
+		{
+			name: "uploadOrder positive",
+			args: args{
+				url:         "/api/user/orders",
+				method:      http.MethodPost,
+				requestBody: luhnorderID,
+				headers:     map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+
+					mockOrders.EXPECT().AddOrder(gomock.Any(), int64(79927398713), expectedUser.UserID).
+						Return(expectedOrder, nil)
+				},
+			},
+			expectedStatusCode: http.StatusAccepted,
+			expectedBody:       expectedOrder,
+			parseResponseBody: func(b []byte) (interface{}, error) {
+				respBody := &models.Order{}
+				err := json.Unmarshal(b, respBody)
+				if err != nil {
+					return nil, fmt.Errorf("json.Unmarshal: %w %s", err, string(b))
+				}
+				return respBody, nil
+			},
+		},
+		{
+			name: "uploadOrder err AlreadyUploadByUser",
+			args: args{
+				url:         "/api/user/orders",
+				method:      http.MethodPost,
+				requestBody: luhnorderID,
+				headers:     map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+					mockOrders.EXPECT().AddOrder(gomock.Any(), int64(79927398713), expectedUser.UserID).
+						Return(nil, myerrors.ErrOrderUploadByAnotherUser)
+				},
+			},
+			expectedStatusCode: http.StatusConflict,
+			expectedErr:        myerrors.ErrOrderUploadByAnotherUser,
+		},
+		{
+			name: "uploadOrder OrderAlreadyUploadByUser",
+			args: args{
+				url:         "/api/user/orders",
+				method:      http.MethodPost,
+				requestBody: luhnorderID,
+				headers:     map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+					mockOrders.EXPECT().AddOrder(gomock.Any(), int64(79927398713), expectedUser.UserID).
+						Return(nil, myerrors.ErrOrderAlreadyUploadByUser)
+				},
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedErr:        myerrors.ErrOrderAlreadyUploadByUser,
+		},
+		{
+			name: "uploadOrder err no body",
+			args: args{
+				url:         "/api/user/orders",
+				method:      http.MethodPost,
+				requestBody: nil,
+				headers:     map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+				},
+			},
+			expectedStatusCode: http.StatusUnprocessableEntity,
+			expectedErr:        myerrors.ErrBadFormatOrder,
+		},
+		{
+			name: "uploadOrder orderID not valid",
+			args: args{
+				url:         "/api/user/orders",
+				method:      http.MethodPost,
+				requestBody: "123",
+				headers:     map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+				},
+			},
+			expectedStatusCode: http.StatusUnprocessableEntity,
+			expectedErr:        myerrors.ErrBadFormatOrder,
+		},
+		{
+			name: "uploadOrder add order error",
+			args: args{
+				url:         "/api/user/orders",
+				method:      http.MethodPost,
+				requestBody: luhnorderID,
+				headers:     map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+					mockOrders.EXPECT().AddOrder(gomock.Any(), int64(79927398713), expectedUser.UserID).
+						Return(nil, sql.ErrNoRows)
+				},
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedErr:        sql.ErrNoRows,
+		},
+		{
+			name: "get orders positive",
+			args: args{
+				url:     "/api/user/orders",
+				method:  http.MethodGet,
+				headers: map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+					mockOrders.EXPECT().GetOrdersByUserID(gomock.Any(), expectedUser.UserID).
+						Return([]*models.Order{expectedOrder}, nil)
+				},
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedBody:       []*models.Order{expectedOrder},
+			parseResponseBody: func(b []byte) (interface{}, error) {
+				respBody := make([]*models.Order, 0)
+				err := json.Unmarshal(b, &respBody)
+				if err != nil {
+					return nil, fmt.Errorf("json.Unmarshal: %w %s", err, string(b))
+				}
+				return respBody, nil
+			},
+		},
+		{
+			name: "get orders err bd",
+			args: args{
+				url:     "/api/user/orders",
+				method:  http.MethodGet,
+				headers: map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+					mockOrders.EXPECT().GetOrdersByUserID(gomock.Any(), expectedUser.UserID).
+						Return(nil, anyErr)
+				},
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedErr:        anyErr,
+		},
+		{
+			name: "get orders no conntent",
+			args: args{
+				url:     "/api/user/orders",
+				method:  http.MethodGet,
+				headers: map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+					mockOrders.EXPECT().GetOrdersByUserID(gomock.Any(), expectedUser.UserID).
+						Return(nil, nil)
+				},
+			},
+			expectedStatusCode: http.StatusNoContent,
+			expectedErr:        fmt.Errorf(""), // При статусе 204 тело не возвращается
+		},
 	}
 
 	for _, tt := range tests {
@@ -363,15 +540,22 @@ func TestHandlers(t *testing.T) {
 
 					body = bytes.NewReader(b)
 				}
+			} else {
+				body = http.NoBody
 			}
 
 			req, err := http.NewRequestWithContext(context.Background(), tt.args.method, tt.args.url, body)
 			require.NoError(t, err)
 
+			// добавляем заголовки в запрос
+			for k, v := range tt.args.headers {
+				req.Header.Add(k, v)
+			}
+
 			g.ServeHTTP(recorder, req)
 
 			// код ответа
-			assert.Equal(t, tt.expectedStatusCode, recorder.Code)
+			assert.Equalf(t, tt.expectedStatusCode, recorder.Code, "body: %s", recorder.Body.String())
 
 			// тело ответа, нет ошибки
 			if tt.expectedErr == nil {

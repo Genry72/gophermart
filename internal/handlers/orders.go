@@ -13,25 +13,25 @@ import (
 func (h *Handler) uploadOrder(c *gin.Context) {
 	userID, ok := c.Request.Context().Value(models.CtxKeyUserID{}).(int64)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, myerrors.ErrBadCtxUserID.Error())
+		c.String(http.StatusInternalServerError, myerrors.ErrBadCtxUserID.Error())
 		return
 	}
 
 	// Проверка на валидность номера заказа из тела запроса
 	body, err := io.ReadAll(c.Request.Body)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	orderID, err := strconv.ParseInt(string(body), 10, 64)
 	if err != nil {
-		c.JSON(http.StatusUnprocessableEntity, myerrors.ErrBadFormatOrder.Error())
+		c.String(http.StatusUnprocessableEntity, myerrors.ErrBadFormatOrder.Error())
 		return
 	}
 
 	if !luhn.Valid(int(orderID)) {
-		c.JSON(http.StatusUnprocessableEntity, myerrors.ErrBadFormatOrder.Error())
+		c.String(http.StatusUnprocessableEntity, myerrors.ErrBadFormatOrder.Error())
 		return
 	}
 
@@ -40,7 +40,7 @@ func (h *Handler) uploadOrder(c *gin.Context) {
 	order, err := h.useCases.Orders.AddOrder(ctx, orderID, userID)
 	if err != nil {
 		status := checkError(err)
-		c.JSON(status, err.Error())
+		c.String(status, err.Error())
 
 		return
 	}
@@ -51,7 +51,7 @@ func (h *Handler) uploadOrder(c *gin.Context) {
 func (h *Handler) getOrders(c *gin.Context) {
 	userID, ok := c.Request.Context().Value(models.CtxKeyUserID{}).(int64)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, myerrors.ErrBadCtxUserID.Error())
+		c.String(http.StatusInternalServerError, myerrors.ErrBadCtxUserID.Error())
 		return
 	}
 
@@ -59,12 +59,12 @@ func (h *Handler) getOrders(c *gin.Context) {
 
 	orders, err := h.useCases.Orders.GetOrdersByUserID(ctx, userID)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, myerrors.ErrBadCtxUserID.Error())
+		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
 	if len(orders) == 0 {
-		c.JSON(http.StatusNoContent, myerrors.ErrNoOrders.Error())
+		c.String(http.StatusNoContent, "") // При статусе 204 тело не возвращается
 		return
 	}
 
