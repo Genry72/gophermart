@@ -5,6 +5,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	mockAuth "github.com/Genry72/gophermart/internal/handlers/jwtauth/mocks"
 	"github.com/Genry72/gophermart/internal/logger"
@@ -806,5 +807,46 @@ func TestNewHandlerAndAuth(t *testing.T) {
 			assert.Equal(t, http.StatusBadRequest, resp.Code)
 		}
 	}
+
+}
+
+func TestStartHandler(t *testing.T) {
+	useCases := new(usecases.Usecase)
+	hostPort := "localhost:8080"
+	tokenKey := "token"
+	jwtLifeTime := time.Hour
+	zapLogger := logger.NewZapLogger("info")
+
+	handler := NewHandler(useCases, hostPort, tokenKey, jwtLifeTime, zapLogger)
+
+	go func() {
+		if err := handler.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			assert.NoError(t, err)
+		}
+	}()
+
+	defer func() {
+		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+		defer cancel()
+
+		if err := handler.Stop(ctx); err != nil {
+			assert.NoError(t, err)
+		}
+	}()
+
+	time.Sleep(time.Second)
+
+	req, err := http.NewRequestWithContext(context.Background(), "GET", "http://localhost:8080/api/user/login", nil)
+	assert.NoError(t, err)
+
+	client := &http.Client{}
+
+	res, err := client.Do(req)
+	assert.NoError(t, err)
+
+	defer func() {
+		err := res.Body.Close()
+		assert.NoError(t, err)
+	}()
 
 }
