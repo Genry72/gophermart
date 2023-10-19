@@ -13,7 +13,7 @@ import (
 func (h *Handler) getUserBalance(c *gin.Context) {
 	userID, ok := c.Request.Context().Value(models.CtxKeyUserID{}).(int64)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, myerrors.ErrBadCtxUserID.Error())
+		c.String(http.StatusInternalServerError, myerrors.ErrBadCtxUserID.Error())
 		return
 	}
 
@@ -22,7 +22,7 @@ func (h *Handler) getUserBalance(c *gin.Context) {
 	balance, err := h.useCases.Balances.GetUserBalance(ctx, userID)
 	if err != nil {
 		h.log.Error(" h.useCases.Users.GetUserBalanc", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 
@@ -46,12 +46,12 @@ func (h *Handler) withdraw(c *gin.Context) {
 
 	orderID, err := strconv.ParseInt(draw.Order, 10, 64)
 	if err != nil {
-		c.JSON(http.StatusUnprocessableEntity, myerrors.ErrBadFormatOrder.Error())
+		c.String(http.StatusUnprocessableEntity, myerrors.ErrBadFormatOrder.Error())
 		return
 	}
 
 	if !luhn.Valid(int(orderID)) {
-		c.JSON(http.StatusUnprocessableEntity, myerrors.ErrBadFormatOrder.Error())
+		c.String(http.StatusUnprocessableEntity, myerrors.ErrBadFormatOrder.Error())
 		return
 	}
 
@@ -62,18 +62,18 @@ func (h *Handler) withdraw(c *gin.Context) {
 	if err := h.useCases.Balances.Withdraw(ctx, &draw); err != nil {
 		h.log.Error(" h.useCases.Users.Withdraw", zap.Error(err))
 		status := checkError(err)
-		c.JSON(status, err.Error())
+		c.String(status, err.Error())
 
 		return
 	}
 
-	c.JSON(http.StatusOK, "ok")
+	c.JSON(http.StatusOK, draw)
 }
 
 func (h *Handler) withdrawals(c *gin.Context) {
 	userID, ok := c.Request.Context().Value(models.CtxKeyUserID{}).(int64)
 	if !ok {
-		c.JSON(http.StatusInternalServerError, myerrors.ErrBadCtxUserID.Error())
+		c.String(http.StatusInternalServerError, myerrors.ErrBadCtxUserID.Error())
 		return
 	}
 
@@ -82,7 +82,7 @@ func (h *Handler) withdrawals(c *gin.Context) {
 	drawals, err := h.useCases.Balances.Withdrawals(ctx, userID)
 	if err != nil {
 		h.log.Error("h.useCases.Users.Withdrawals", zap.Error(err))
-		c.JSON(http.StatusInternalServerError, err.Error())
+		c.String(http.StatusInternalServerError, err.Error())
 		return
 	}
 

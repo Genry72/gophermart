@@ -158,6 +158,17 @@ func TestHandlers(t *testing.T) {
 		//UserID:  1, // userID не возвращаем в ответе
 	}
 
+	expectedDraw := &models.Withdraw{
+		//UserID: 1, // userID не возвращаем в ответе
+		Order:  luhnorderID,
+		Points: 50,
+	}
+
+	expectedBalance := &models.Balance{
+		Current:   100,
+		Withdrawn: 50,
+	}
+
 	anyErr := fmt.Errorf("anyErr")
 
 	zapLogger := logger.NewZapLogger("info")
@@ -516,6 +527,195 @@ func TestHandlers(t *testing.T) {
 			},
 			expectedStatusCode: http.StatusNoContent,
 			expectedErr:        fmt.Errorf(""), // При статусе 204 тело не возвращается
+		},
+		// balance
+		{
+			name: "getUserBalance positive",
+			args: args{
+				url:     "/api/user/balance",
+				method:  http.MethodGet,
+				headers: map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+					mockBalance.EXPECT().GetUserBalance(gomock.Any(), expectedUser.UserID).Return(expectedBalance, nil)
+				},
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedBody:       expectedBalance,
+			parseResponseBody: func(b []byte) (interface{}, error) {
+				respBody := &models.Balance{}
+				err := json.Unmarshal(b, respBody)
+				if err != nil {
+					return nil, fmt.Errorf("json.Unmarshal: %w %s", err, string(b))
+				}
+				return respBody, nil
+			},
+		},
+		{
+			name: "getUserBalance err bd",
+			args: args{
+				url:     "/api/user/balance",
+				method:  http.MethodGet,
+				headers: map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+					mockBalance.EXPECT().GetUserBalance(gomock.Any(), expectedUser.UserID).Return(nil, anyErr)
+				},
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedErr:        anyErr,
+		},
+		{
+			name: "withdraw positive",
+			args: args{
+				url:         "/api/user/balance/withdraw",
+				method:      http.MethodPost,
+				requestBody: expectedDraw,
+				headers:     map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+					exDarw := *expectedDraw
+					exDarw.UserID = 1 // UserID подменится из контекта
+					mockBalance.EXPECT().Withdraw(gomock.Any(), &exDarw).Return(nil)
+				},
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedBody:       expectedDraw,
+			parseResponseBody: func(b []byte) (interface{}, error) {
+				respBody := &models.Withdraw{}
+				err := json.Unmarshal(b, respBody)
+				if err != nil {
+					return nil, fmt.Errorf("json.Unmarshal: %w %s", err, string(b))
+				}
+				return respBody, nil
+			},
+		},
+		{
+			name: "withdraw empry body",
+			args: args{
+				url:         "/api/user/balance/withdraw",
+				method:      http.MethodPost,
+				requestBody: "",
+				headers:     map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+				},
+			},
+			expectedStatusCode: http.StatusBadRequest,
+			expectedErr:        ErrBadBody,
+		},
+		{
+			name: "withdraw err format order",
+			args: args{
+				url:         "/api/user/balance/withdraw",
+				method:      http.MethodPost,
+				requestBody: "{}",
+				headers:     map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+				},
+			},
+			expectedStatusCode: http.StatusUnprocessableEntity,
+			expectedErr:        myerrors.ErrBadFormatOrder,
+		},
+		{
+			name: "withdraw not valid orderID",
+			args: args{
+				url:    "/api/user/balance/withdraw",
+				method: http.MethodPost,
+				requestBody: &models.Withdraw{
+					UserID: 1,
+					Order:  "123",
+				},
+				headers: map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+				},
+			},
+			expectedStatusCode: http.StatusUnprocessableEntity,
+			expectedErr:        myerrors.ErrBadFormatOrder,
+		},
+		{
+			name: "withdraw no money",
+			args: args{
+				url:         "/api/user/balance/withdraw",
+				method:      http.MethodPost,
+				requestBody: expectedDraw,
+				headers:     map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+					exDarw := *expectedDraw
+					exDarw.UserID = 1 // UserID подменится из контекта
+					mockBalance.EXPECT().Withdraw(gomock.Any(), &exDarw).Return(myerrors.ErrNoMoney)
+				},
+			},
+			expectedStatusCode: http.StatusUnprocessableEntity,
+			expectedErr:        myerrors.ErrNoMoney,
+		},
+		{
+			name: "withdraw err bd",
+			args: args{
+				url:         "/api/user/balance/withdraw",
+				method:      http.MethodPost,
+				requestBody: expectedDraw,
+				headers:     map[string]string{"Authorization": "Bearer " + expectedToken},
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+					exDarw := *expectedDraw
+					exDarw.UserID = 1 // UserID подменится из контекта
+					mockBalance.EXPECT().Withdraw(gomock.Any(), &exDarw).Return(anyErr)
+				},
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedErr:        anyErr,
+		},
+		{
+			name: "withdrawals positive",
+			args: args{
+				url:     "/api/user/withdrawals",
+				method:  http.MethodGet,
+				headers: map[string]string{"Authorization": "Bearer " + expectedToken},
+
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+					mockBalance.EXPECT().Withdrawals(gomock.Any(), expectedUser.UserID).Return([]*models.Withdraw{expectedDraw}, nil)
+				},
+			},
+			expectedStatusCode: http.StatusOK,
+			expectedBody:       []*models.Withdraw{expectedDraw},
+			parseResponseBody: func(b []byte) (interface{}, error) {
+				respBody := []*models.Withdraw{expectedDraw}
+				err := json.Unmarshal(b, &respBody)
+				if err != nil {
+					return nil, fmt.Errorf("json.Unmarshal: %w %s", err, string(b))
+				}
+				return respBody, nil
+			},
+		},
+		{
+			name: "withdrawals err bd",
+			args: args{
+				url:     "/api/user/withdrawals",
+				method:  http.MethodGet,
+				headers: map[string]string{"Authorization": "Bearer " + expectedToken},
+
+				mockFunc: func() {
+					mockAuthToken.EXPECT().ValidateAndParseToken(expectedToken).
+						Return(expectedUser.UserID, expectedUser.Username, nil)
+					mockBalance.EXPECT().Withdrawals(gomock.Any(), expectedUser.UserID).Return(nil, anyErr)
+				},
+			},
+			expectedStatusCode: http.StatusInternalServerError,
+			expectedErr:        anyErr,
 		},
 	}
 
