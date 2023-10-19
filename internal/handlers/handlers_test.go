@@ -165,12 +165,14 @@ func TestHandlers(t *testing.T) {
 	expectedToken := "token"
 
 	handlers.initRoutes()
+
 	type args struct {
 		url         string // url запроса
 		method      string
 		requestBody any // Отправляемое боди (структура, либо строка)
 		mockFunc    func()
 	}
+
 	tests := []struct {
 		name string
 		args args
@@ -367,8 +369,10 @@ func TestHandlers(t *testing.T) {
 			require.NoError(t, err)
 
 			g.ServeHTTP(recorder, req)
+
 			// код ответа
 			assert.Equal(t, tt.expectedStatusCode, recorder.Code)
+
 			// тело ответа, нет ошибки
 			if tt.expectedErr == nil {
 				respBody, err := tt.parseResponseBody(recorder.Body.Bytes())
