@@ -812,12 +812,15 @@ func TestNewHandlerAndAuth(t *testing.T) {
 
 func TestStartHandler(t *testing.T) {
 	useCases := new(usecases.Usecase)
-	hostPort := "localhost:8080"
-	tokenKey := "token"
+	hostPort := ":0"
+	tokenKey := ""
 	jwtLifeTime := time.Hour
 	zapLogger := logger.NewZapLogger("info")
 
 	handler := NewHandler(useCases, hostPort, tokenKey, jwtLifeTime, zapLogger)
+
+	server := httptest.NewServer(handler.ginEngine)
+	defer server.Close()
 
 	go func() {
 		if err := handler.Start(); err != nil && !errors.Is(err, http.ErrServerClosed) {
@@ -836,7 +839,8 @@ func TestStartHandler(t *testing.T) {
 
 	time.Sleep(time.Second)
 
-	req, err := http.NewRequestWithContext(context.Background(), "GET", "http://localhost:8080/api/user/login", nil)
+	req, err := http.NewRequestWithContext(context.Background(),
+		"POST", "http://"+server.Listener.Addr().String()+"/api/user/login", nil)
 	assert.NoError(t, err)
 
 	client := &http.Client{}
