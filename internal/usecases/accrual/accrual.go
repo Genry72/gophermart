@@ -56,7 +56,7 @@ func (o *Accrual) Start(ctx context.Context, interval time.Duration) {
 }
 
 // WaitDone ожидание окончания всех задач по обновлению статусов.
-// Новые заказы не берутся в работу по обновлению при отмене контексата
+// Новые заказы не берутся в работу по обновлению при отмене контексата.
 func (o *Accrual) WaitDone(ctx context.Context) {
 	select {
 	case <-ctx.Done():
