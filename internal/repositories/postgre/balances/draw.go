@@ -24,59 +24,48 @@ func (u *BalanceStorage) Withdraw(ctx context.Context, withdraw *models.Withdraw
 		}
 	}()
 
-	// Получаем количество записей по списаниям пользователя
-	var countDraw int64
+	// Получаем текущий баланс пользователя и блокируем на запись строки с его записями
+	lockBalanceQuery := `
+SELECT user_id,
+       accruals,
+       drawal,
+       current_balance,
+       last_update 
+FROM user_balance where user_id = $1 FOR UPDATE;`
 
-	countDrawRow := tx.QueryRowxContext(ctx, "select count (*) from withdraw WHERE user_id = $1;", withdraw.UserID)
+	var balance models.UserBalance
 
-	if err := countDrawRow.Scan(&countDraw); err != nil {
-		return fmt.Errorf("countDrawRow.Scan: %w", err)
+	rowBalance := tx.QueryRowxContext(ctx, lockBalanceQuery, withdraw.UserID)
+
+	if err := rowBalance.StructScan(&balance); err != nil {
+		return fmt.Errorf("rowBalance.StructScan: %w", err)
 	}
 
-	// Если списаний не было, то блокируем всю таблицу. Операция дорогая, но иначе можем получить повторное списание
-	// при одновременных запросах.
-	if countDraw == 0 {
-		fmt.Println("lock")
-		if _, err := tx.ExecContext(ctx, "LOCK TABLE withdraw IN SHARE MODE;"); err != nil {
-			return fmt.Errorf("LOCK TABLE withdraw: %w", err)
-		}
-	} else { // Записи есть, блокируем только их
-		lockDrawQuery := "SELECT * FROM withdraw  WHERE user_id = $1 FOR UPDATE;"
-		if _, err := tx.ExecContext(ctx, lockDrawQuery, withdraw.UserID); err != nil {
-			return fmt.Errorf("lockDtawQuery: %w", err)
-		}
+	if err := rowBalance.Err(); err != nil {
+		return fmt.Errorf("rowBalance.Err: %w", err)
 	}
 
-	// Выполняем списание, возвращаем результат операции
-	resultQuery := `
-WITH _ AS (
+	if balance.CurrentBalance-withdraw.Points < 0 {
+		return myerrors.ErrNoMoney
+	}
+
+	// Пишем в таблицу withdraw
+	if _, err := tx.ExecContext(ctx, `
     INSERT INTO withdraw (user_id, order_id, points, date)
     VALUES ($1, $2, $3, NOW())
-    RETURNING user_id
-)
-SELECT
-    SUM(accrual) - COALESCE(SUM(w.points), 0) AS current,
-    COALESCE(SUM(w.points), 0) AS withdrawn
-FROM
-    orders o
-LEFT JOIN
-    withdraw w ON o.user_id = w.user_id
-WHERE
-    o.user_id = $1
-GROUP BY
-    o.user_id;
-`
-
-	resultRow := tx.QueryRowxContext(ctx, resultQuery, withdraw.UserID, withdraw.Order, withdraw.Points)
-
-	var result models.Balance
-
-	if err := resultRow.StructScan(&result); err != nil {
-		return fmt.Errorf("resultRow.StructScan: %w", err)
+`, withdraw.UserID, withdraw.Order, withdraw.Points); err != nil {
+		return fmt.Errorf("INSERT withdraw: %w", err)
 	}
 
-	if result.Current < 0 {
-		return myerrors.ErrNoMoney
+	balance.CurrentBalance -= withdraw.Points
+
+	balance.Drawal += withdraw.Points
+
+	// Пишем в таблицу user_balance
+	if _, err := tx.ExecContext(ctx, `
+   update user_balance set current_balance = $1, drawal =$2, last_update = now() where user_id = $3
+`, balance.CurrentBalance, balance.Drawal, withdraw.UserID); err != nil {
+		return fmt.Errorf("addBalance: %w", err)
 	}
 
 	if err := tx.Commit(); err != nil {

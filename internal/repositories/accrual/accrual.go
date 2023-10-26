@@ -9,6 +9,7 @@ import (
 	"github.com/Genry72/gophermart/internal/models/myerrors"
 	"github.com/go-resty/resty/v2"
 	"github.com/jmoiron/sqlx"
+	"github.com/lib/pq"
 	"go.uber.org/zap"
 	"net/http"
 	"sync"
@@ -63,7 +64,7 @@ func (o *AccrualsStorage) GetUnprocessedOrders(ctx context.Context) ([]int64, er
 }
 
 // GetAccrualInfo получение информации по заказам из accrual
-func (o *AccrualsStorage) GetAccrualInfo(ctx context.Context, orderIDs []int64) []*models.ResponseAccrual {
+func (o *AccrualsStorage) GetAccrualInfo(ctx context.Context, orderIDs []int64) models.ResponseAccruals {
 	result := make([]*models.ResponseAccrual, len(orderIDs))
 
 	wg := sync.WaitGroup{}
@@ -105,18 +106,14 @@ func (o *AccrualsStorage) GetAccrualInfo(ctx context.Context, orderIDs []int64) 
 	return result
 }
 
-func (o *AccrualsStorage) WriteStatus(ctx context.Context, src []*models.ResponseAccrual) error {
+func (o *AccrualsStorage) WriteStatus(ctx context.Context, src models.ResponseAccruals) error {
 	if len(src) == 0 {
 		return nil
 	}
 
-	query := `
-UPDATE orders set status=$2, accrual=$3, updated_at=now()
-where order_id = $1`
-
-	tx, err := o.conn.Beginx()
+	tx, err := o.conn.BeginTxx(ctx, nil)
 	if err != nil {
-		return fmt.Errorf("o.conn.Beginx: %w", err)
+		return fmt.Errorf("r.conn.BeginTx: %w", err)
 	}
 
 	defer func() {
@@ -125,12 +122,95 @@ where order_id = $1`
 		}
 	}()
 
+	var orderIDs pq.StringArray = src.GetOrderIDs()
+
+	if len(orderIDs) == 0 {
+		return nil
+	}
+
+	// Получаем текущие балансы пользователей и блокируем на запись строки с их записями
+
+	lockBalanceQuery := `
+SELECT user_id,
+       accruals,
+       drawal,
+       current_balance,
+       last_update 
+FROM user_balance  
+         WHERE user_id in (
+         select user_id from orders 
+                        where order_id in ($1)
+                        ) FOR UPDATE;`
+
+	// Ключ id пользователя, значение - его баланс
+	currentBalances := make(map[int64]models.UserBalance, len(orderIDs))
+
+	rowsBalance, err := tx.QueryxContext(ctx, lockBalanceQuery, orderIDs)
+	if err != nil {
+		fmt.Println(lockBalanceQuery)
+		return fmt.Errorf("lock user_balance: :%w", err)
+	}
+
+	defer func() {
+		if err := rowsBalance.Close(); err != nil {
+			o.log.Error("rowsBalance.Close", zap.Error(err))
+		}
+	}()
+
+	for rowsBalance.Next() {
+		var balance models.UserBalance
+		if err := rowsBalance.StructScan(&balance); err != nil {
+			return fmt.Errorf("rowsBalance.StructScan: %w", err)
+		}
+		currentBalances[balance.UserID] = balance
+	}
+
+	if err := rowsBalance.Err(); err != nil {
+		return fmt.Errorf("rowsBalance.Err: %w", err)
+	}
+
+	// Обновляем заказы, обновляем мапу с балансом пользователя
+
+	updateOrdersQuery := `
+UPDATE orders set status=$2, accrual=$3, updated_at=now()
+where order_id = $1 returning user_id`
+
 	for i := range src {
 		if src[i] == nil {
 			continue
 		}
-		if _, err := tx.ExecContext(ctx, query, src[i].OrderID, src[i].Status, src[i].Accrual); err != nil {
-			return fmt.Errorf("tx.ExecContext: %w", err)
+
+		rowOrder := tx.QueryRowContext(ctx, updateOrdersQuery, src[i].OrderID, src[i].Status, src[i].Accrual)
+
+		var userID int64
+
+		if src[i].Accrual == 0 {
+			continue
+		}
+
+		if err := rowOrder.Scan(&userID); err != nil {
+			return fmt.Errorf("rowOrder.Scan: %w", err)
+		}
+
+		balance := currentBalances[userID]
+
+		balance.Accruals += src[i].Accrual
+
+		balance.CurrentBalance += src[i].Accrual
+
+		currentBalances[userID] = balance
+	}
+
+	// Пишем в базу обновленный баланс пользователя
+
+	addBalanceQuery := `
+update user_balance set accruals = $1, current_balance =$2, last_update = now() where user_id = $3
+`
+
+	for uID := range currentBalances {
+		if _, err := tx.ExecContext(ctx,
+			addBalanceQuery, currentBalances[uID].Accruals, currentBalances[uID].CurrentBalance, uID); err != nil {
+			return fmt.Errorf("addBalance: %w", err)
 		}
 	}
 

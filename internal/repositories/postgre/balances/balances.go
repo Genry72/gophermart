@@ -22,12 +22,10 @@ func NewBalanceStorage(conn *sqlx.DB, log *zap.Logger) *BalanceStorage {
 func (u *BalanceStorage) GetUserBalance(ctx context.Context, userID int64) (*models.Balance, error) {
 	query := `
 select
-sum(accrual) - COALESCE(sum(w.points), 0) as current,
-COALESCE(sum(w.points), 0) as withdrawn
-from orders o
-          left join withdraw w on o.user_id = w.user_id
-where o.user_id = $1
-group by o.user_id
+current_balance as current,
+drawal as withdrawn
+from user_balance
+where user_id = $1
 `
 	result := &models.Balance{}
 

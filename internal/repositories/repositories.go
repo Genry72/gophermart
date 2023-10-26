@@ -39,7 +39,7 @@ type Accrualer interface {
 	// GetUnprocessedOrders Получение id заказов по которым нужны проверки статусов
 	GetUnprocessedOrders(ctx context.Context) ([]int64, error)
 	// GetAccrualInfo получение информации по заказам из accrual
-	GetAccrualInfo(ctx context.Context, orderIDs []int64) []*models.ResponseAccrual
+	GetAccrualInfo(ctx context.Context, orderIDs []int64) models.ResponseAccruals
 	// WriteStatus Запись информации по заказам в базу
-	WriteStatus(ctx context.Context, src []*models.ResponseAccrual) error
+	WriteStatus(ctx context.Context, src models.ResponseAccruals) error
 }

@@ -224,10 +224,10 @@ func (m *MockAccrualer) EXPECT() *MockAccrualerMockRecorder {
 }
 
 // GetAccrualInfo mocks base method.
-func (m *MockAccrualer) GetAccrualInfo(ctx context.Context, orderIDs []int64) []*models.ResponseAccrual {
+func (m *MockAccrualer) GetAccrualInfo(ctx context.Context, orderIDs []int64) models.ResponseAccruals {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "GetAccrualInfo", ctx, orderIDs)
-	ret0, _ := ret[0].([]*models.ResponseAccrual)
+	ret0, _ := ret[0].(models.ResponseAccruals)
 	return ret0
 }
 
@@ -253,7 +253,7 @@ func (mr *MockAccrualerMockRecorder) GetUnprocessedOrders(ctx interface{}) *gomo
 }
 
 // WriteStatus mocks base method.
-func (m *MockAccrualer) WriteStatus(ctx context.Context, src []*models.ResponseAccrual) error {
+func (m *MockAccrualer) WriteStatus(ctx context.Context, src models.ResponseAccruals) error {
 	m.ctrl.T.Helper()
 	ret := m.ctrl.Call(m, "WriteStatus", ctx, src)
 	ret0, _ := ret[0].(error)

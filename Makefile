@@ -13,7 +13,6 @@ test:
   	   -accrual-host=localhost \
   	   -accrual-port=8083 \
   	   -accrual-database-uri="postgres://postgres:pass@localhost:5432/gophermart?sslmode=disable"
-.PHONY: runAccural
 
 .PHONY: run
 run:
