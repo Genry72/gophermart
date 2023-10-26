@@ -71,5 +71,5 @@ comment on table withdraw is 'Списание средств';
 comment on column withdraw.id is 'Уникальный идентификатор записи';
 comment on column withdraw.user_id is 'ID пользователя';
 comment on column withdraw.order_id is 'ID заказа, в счет которого произошло списание';
-comment on column withdraw.points is 'Колличество списанных баллов';
+comment on column withdraw.points is 'Количество списанных баллов';
 comment on column withdraw.date is 'Дата списания';
